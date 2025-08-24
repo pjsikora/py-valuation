@@ -11,6 +11,7 @@ from internal.misc import is_valid_url
 from config import settings
 
 
+
 # Models
 class Estimation(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
@@ -21,6 +22,7 @@ class Estimation(SQLModel, table=True):
     title: str = Field(nullable=False)
     max_value: int = Field(nullable=False)
     min_value: int = Field(nullable=False)
+    url: str = Field(nullable=False)
 
 
 class EstimationResponse(BaseModel):
@@ -30,6 +32,7 @@ class EstimationResponse(BaseModel):
     min_value: int
     max_value: int
     created_at: datetime
+    url: str 
 
 
 class ValuationResponse(BaseModel):
@@ -49,7 +52,11 @@ engine = create_engine(
     connect_args={"check_same_thread": False}  # For SQLite threading
 )
 
+# Drop all tables
+# SQLModel.metadata.drop_all(engine)
 
+# # Recreate all tables with new columns
+# SQLModel.metadata.create_all(engine)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifecycle manager"""
@@ -74,13 +81,15 @@ def create_estimation(
     session: Session, 
     title: str, 
     min_value: int, 
-    max_value: int
+    max_value: int,
+    url: str 
 ) -> Estimation:
     """Create a new estimation record"""
     estimation = Estimation(
         title=title, 
         max_value=max_value, 
-        min_value=min_value
+        min_value=min_value,
+        url=url
     )
     session.add(estimation)
     session.commit()
@@ -117,11 +126,7 @@ async def get_gpt_data(
         )
     
     try:
-        # Get valuation from external service with detailed logging
-        print(f"Calling valuate_item with URL: {image_url}")
         response = valuate_item(image_url)
-        print(f"Raw response from valuate_item: {response}")
-        print(f"Response type: {type(response)}")
         
         # Handle different response types
         if response is None:
@@ -187,7 +192,8 @@ async def get_gpt_data(
             session=session,
             title=description,
             min_value=min_value,
-            max_value=max_value
+            max_value=max_value, 
+            url=image_url
         )
         
         return ValuationResponse(
