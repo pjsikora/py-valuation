@@ -48,9 +48,8 @@ async def upload_images(files: List[UploadFile] = File(...)):
 
     return JSONResponse(
         content={
-            "model": "gpt-4o-mini",
-            "filenames": filenames,
-            "response": result_text
+            # "model": "gpt-4o-mini",
+            "response": result_text.removeprefix("```html").removesuffix("```").strip()
         }
     )
 

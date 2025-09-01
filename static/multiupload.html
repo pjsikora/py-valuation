@@ -32,13 +32,9 @@
 </head>
 <body>
   <div class="wrap">
-    <h1>Wyślij kilka obrazów</h1>
-    <p class="muted">Obsługa: przeciągnij i upuść lub wybierz pliki. Dozwolone: <code>image/*</code>. Limit domyślny: 10 plików, ≤ 5&nbsp;MB każdy (walidacja po stronie klienta).</p>
-
+    <h1>Wyceń przedmiot</h1>
     <form id="form" action="/upload-images" method="post" enctype="multipart/form-data">
       <div id="drop" class="drop">
-        <p><strong>Przeciągnij i upuść obrazy tutaj</strong></p>
-        <p class="muted note">…albo</p>
         <label class="btn">
           Wybierz pliki
           <input id="file" type="file" name="files" accept="image/*" multiple />
@@ -54,7 +50,7 @@
     </form>
 
     <h3>Odpowiedź serwera</h3>
-    <pre id="out">—</pre>
+    <div id="out">—</div>
   </div>
 
   <script>
@@ -145,7 +141,8 @@
 
       const res = await fetch(form.action, { method: 'POST', body: fd });
       const json = await res.json().catch(() => ({}));
-      out.textContent = JSON.stringify(json, null, 2);
+
+      out.innerHTML = json.response;
       status.textContent = res.ok ? 'Gotowe ✅' : 'Błąd ❌';
     });
   </script>
