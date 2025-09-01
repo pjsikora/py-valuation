@@ -3,3 +3,4 @@ openai
 pydantic_settings
 sqlmodel
 python-multipart
+uvicorn
