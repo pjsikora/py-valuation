@@ -41,6 +41,27 @@ SHORT_ANSWER_TO_JSON_PROMPT = """
     <max_value> - Max value
 """
 
+SHORT_ANSWER_TO_TEXT_PROMPT = """
+    You are a seasoned connoisseur of antiques and historical artifacts, 
+    with deep knowledge of art history, craftsmanship, and the provenance of collectible items. 
+    Give a short name of item and range of values on the market.
+
+    Whole answer should be given in polish language
+
+
+    The answer has to be in HTML format:
+    <strong><element_name></strong>
+    <p>Wartość: <min_value> PLN - <max_value> PLN
+    <p><element_description></p>
+
+
+    where: 
+    <element_name> - Element description
+    <element_description> - Element description
+    <min_value> - Min value 
+    <max_value> - Max value
+"""
+
 
 GPT_MODELS = [
     "gpt-4.1",

@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8" />
+  <title>Wiele obrazów — upload</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root { --border:#d0d7de; --bg:#f6f8fa; --accent:#0969da; }
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; margin: 24px; }
+    .wrap { max-width: 900px; margin: 0 auto; }
+    .drop {
+      border: 2px dashed var(--border); border-radius: 12px; padding: 28px; background: var(--bg);
+      text-align: center; transition: .2s border-color, .2s background;
+    }
+    .drop.dragover { border-color: var(--accent); background: #eef6ff; }
+    .drop input[type=file] { display: none; }
+    .btn { background: var(--accent); color: #fff; border: 0; padding: 10px 14px; border-radius: 10px; cursor: pointer; }
+    .muted { color:#57606a; font-size: 14px; }
+    .grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; margin-top: 16px;
+    }
+    .card {
+      border: 1px solid var(--border); border-radius: 12px; overflow: hidden; background: #fff; display:flex; flex-direction:column;
+    }
+    .card img { width: 100%; height: 120px; object-fit: cover; display:block; }
+    .card .meta { padding: 8px 10px; display:flex; justify-content: space-between; align-items: center; gap: 6px; }
+    .x { border:0; background:#ef4444; color:#fff; border-radius: 8px; padding: 4px 8px; cursor:pointer; font-size:12px; }
+    .row { display:flex; gap:12px; align-items:center; margin-top: 16px; }
+    .note { margin-top: 8px; }
+    pre { background:#0b1021; color:#e7e9ee; padding:12px; border-radius:10px; overflow:auto; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Wyślij kilka obrazów</h1>
+    <p class="muted">Obsługa: przeciągnij i upuść lub wybierz pliki. Dozwolone: <code>image/*</code>. Limit domyślny: 10 plików, ≤ 5&nbsp;MB każdy (walidacja po stronie klienta).</p>
+
+    <form id="form" action="/upload-images" method="post" enctype="multipart/form-data">
+      <div id="drop" class="drop">
+        <p><strong>Przeciągnij i upuść obrazy tutaj</strong></p>
+        <p class="muted note">…albo</p>
+        <label class="btn">
+          Wybierz pliki
+          <input id="file" type="file" name="files" accept="image/*" multiple />
+        </label>
+      </div>
+
+      <div id="grid" class="grid" aria-live="polite"></div>
+
+      <div class="row">
+        <button class="btn" type="submit">Wyślij</button>
+        <span id="status" class="muted"></span>
+      </div>
+    </form>
+
+    <h3>Odpowiedź serwera</h3>
+    <pre id="out">—</pre>
+  </div>
+
+  <script>
+    const input = document.getElementById('file');
+    const drop = document.getElementById('drop');
+    const grid = document.getElementById('grid');
+    const form = document.getElementById('form');
+    const out  = document.getElementById('out');
+    const status = document.getElementById('status');
+
+    const MAX_FILES = 10;
+    const MAX_SIZE  = 10 * 1024 * 1024; // 10 MB
+
+    /** aktualny zestaw wybranych plików (możliwość usuwania przed wysłaniem) */
+    let files = [];
+
+    function renderGrid() {
+      grid.innerHTML = '';
+      files.forEach((f, idx) => {
+        const url = URL.createObjectURL(f);
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.innerHTML = `
+          <img src="${url}" alt="${f.name}" />
+          <div class="meta">
+            <small class="muted" title="${f.name}">${truncate(f.name, 18)}</small>
+            <button class="x" data-idx="${idx}" type="button">Usuń</button>
+          </div>
+        `;
+        grid.appendChild(card);
+        // zwolnij URL po załadowaniu miniatury
+        card.querySelector('img').addEventListener('load', () => URL.revokeObjectURL(url));
+      });
+
+      grid.querySelectorAll('.x').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          const i = Number(e.currentTarget.dataset.idx);
+          files.splice(i, 1);
+          renderGrid();
+          status.textContent = files.length ? `${files.length} plik(i)` : '';
+        });
+      });
+    }
+
+    function truncate(s, n) {
+      return s.length > n ? s.slice(0, n - 1) + '…' : s;
+    }
+
+    function addFiles(list) {
+      const incoming = Array.from(list);
+      for (const f of incoming) {
+        if (!f.type.startsWith('image/')) continue;
+        if (f.size > MAX_SIZE) {
+          alert(`Plik "${f.name}" przekracza limit 10 MB.`);
+          continue;
+        }
+        if (files.length >= MAX_FILES) {
+          alert(`Limit ${MAX_FILES} plików osiągnięty.`);
+          break;
+        }
+        files.push(f);
+      }
+      renderGrid();
+      status.textContent = files.length ? `${files.length} plik(i)` : '';
+    }
+
+    // Input change
+    input.addEventListener('change', (e) => addFiles(e.target.files));
+
+    // Drag & drop
+    ['dragenter','dragover'].forEach(ev => {
+      drop.addEventListener(ev, (e) => { e.preventDefault(); e.stopPropagation(); drop.classList.add('dragover'); });
+    });
+    ['dragleave','drop'].forEach(ev => {
+      drop.addEventListener(ev, (e) => { e.preventDefault(); e.stopPropagation(); drop.classList.remove('dragover'); });
+    });
+    drop.addEventListener('drop', (e) => addFiles(e.dataTransfer.files));
+
+    // Submit via fetch, by wysłać wszystkie pliki w form-data pod key "files"
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (!files.length) { alert('Dodaj co najmniej jeden obraz.'); return; }
+
+      status.textContent = 'Wysyłanie…';
+
+      const fd = new FormData();
+      files.forEach(f => fd.append('files', f, f.name));
+
+      const res = await fetch(form.action, { method: 'POST', body: fd });
+      const json = await res.json().catch(() => ({}));
+      out.textContent = JSON.stringify(json, null, 2);
+      status.textContent = res.ok ? 'Gotowe ✅' : 'Błąd ❌';
+    });
+  </script>
+</body>
+</html>

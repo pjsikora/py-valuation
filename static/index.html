@@ -1,2 +1,13 @@
 <!DOCTYPE html>
-<h1>PYK</h1>
+<html>
+<head>
+    <title>Upload pliku</title>
+</head>
+<body>
+    <h1>Wyślij plik</h1>
+    <form action="/upload" method="post" enctype="multipart/form-data">
+        <input type="file" name="file"><br><br>
+        <button type="submit">Wyślij</button>
+    </form>
+</body>
+</html>
