@@ -18,7 +18,7 @@ def read_index():
 @app.post("/upload-images")
 async def upload_images(files: List[UploadFile] = File(...)):
     if not files:
-        raise HTTPException(status_code=400, detail="Brak plików.")
+        raise HTTPException(status_code=400, detail="No files.")
 
     content_blocks = [
         {"type": "text", "text": PROMPT_TO_AI},
@@ -28,7 +28,7 @@ async def upload_images(files: List[UploadFile] = File(...)):
     for f in files:
         ct = (f.content_type or "").lower()
         if not ct.startswith("image/"):
-            raise HTTPException(status_code=415, detail=f"Niedozwolony typ pliku: {ct or 'unknown'} (wymagane image/*)")
+            raise HTTPException(status_code=415, detail=f"Unknown file type: {ct or 'unknown'} (wymagane image/*)")
 
         data = await f.read()
         b64 = base64.b64encode(data).decode("utf-8")

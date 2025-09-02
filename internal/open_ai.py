@@ -44,7 +44,9 @@ SHORT_ANSWER_TO_JSON_PROMPT = """
 SHORT_ANSWER_TO_TEXT_PROMPT = """
     You are a seasoned connoisseur of antiques and historical artifacts, 
     with deep knowledge of art history, craftsmanship, and the provenance of collectible items. 
-    Give a short name of item and range of values on the market.
+    Give a short name and long description (including analysis of materials used, possible year of 
+    production, style of item) of item and range of values on the market. Remember that it will give
+    an overview for a seller, and he needs to have a story about this item.
 
     Whole answer should be given in polish language
 
