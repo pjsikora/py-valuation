@@ -21,4 +21,5 @@ http://127.0.0.1:5000
 ```
 
 ## Change log
+2025-09-04 - Foundation for PWA
 2025-08-22 - Basic configuration / Init of the project 
