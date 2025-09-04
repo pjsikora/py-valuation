@@ -1,13 +1,143 @@
 <!DOCTYPE html>
-<html>
+<html lang="pl">
 <head>
-    <title>Upload pliku</title>
+  <meta charset="utf-8" />
+  <title>Wyceń przedmiot</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  
+ <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="theme-color" content="#0969da">
+  <meta name="application-name" content="Wyceń przedmiot">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <link rel="apple-touch-icon" href="/icons/icon-192.png">
+  <link rel="stylesheet" type="text/css" href="/style.css" />
 </head>
 <body>
-    <h1>Wyślij plik</h1>
-    <form action="/upload" method="post" enctype="multipart/form-data">
-        <input type="file" name="file"><br><br>
-        <button type="submit">Wyślij</button>
+  <div class="wrap">
+    <h1>Wyceń przedmiot</h1>
+
+    <form id="form" action="/upload-images" method="post" enctype="multipart/form-data">
+      <div id="drop" class="drop">
+        <label class="btn">
+          Wybierz pliki
+          <input id="file" type="file" name="files" accept="image/*" multiple />
+        </label>
+      </div>
+
+      <div id="grid" class="grid" aria-live="polite"></div>
+
+      <div class="row">
+        <button class="btn" type="submit">Wyślij</button>
+        <span id="status" class="muted"></span>
+      </div>
     </form>
+
+    <h3>Odpowiedź serwera</h3>
+    <div id="out">—</div>
+  </div>
+
+  <script>
+    const input = document.getElementById('file');
+    const drop = document.getElementById('drop');
+    const grid = document.getElementById('grid');
+    const form = document.getElementById('form');
+    const out  = document.getElementById('out');
+    const status = document.getElementById('status');
+
+    const MAX_FILES = 10;
+    const MAX_SIZE  = 10 * 1024 * 1024; // 10 MB
+
+    /** aktualny zestaw wybranych plików (możliwość usuwania przed wysłaniem) */
+    let files = [];
+
+    function renderGrid() {
+      grid.innerHTML = '';
+      files.forEach((f, idx) => {
+        const url = URL.createObjectURL(f);
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.innerHTML = `
+          <img src="${url}" alt="${f.name}" />
+          <div class="meta">
+            <small class="muted" title="${f.name}">${truncate(f.name, 18)}</small>
+            <button class="x" data-idx="${idx}" type="button">Usuń</button>
+          </div>
+        `;
+        grid.appendChild(card);
+        // zwolnij URL po załadowaniu miniatury
+        card.querySelector('img').addEventListener('load', () => URL.revokeObjectURL(url));
+      });
+
+      grid.querySelectorAll('.x').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          const i = Number(e.currentTarget.dataset.idx);
+          files.splice(i, 1);
+          renderGrid();
+          status.textContent = files.length ? `${files.length} plik(i)` : '';
+        });
+      });
+    }
+
+    function truncate(s, n) {
+      return s.length > n ? s.slice(0, n - 1) + '…' : s;
+    }
+
+    function addFiles(list) {
+      const incoming = Array.from(list);
+      for (const f of incoming) {
+        if (!f.type.startsWith('image/')) continue;
+        if (f.size > MAX_SIZE) {
+          alert(`Plik "${f.name}" przekracza limit 10 MB.`);
+          continue;
+        }
+        if (files.length >= MAX_FILES) {
+          alert(`Limit ${MAX_FILES} plików osiągnięty.`);
+          break;
+        }
+        files.push(f);
+      }
+      renderGrid();
+      status.textContent = files.length ? `${files.length} plik(i)` : '';
+    }
+
+    // Input change
+    input.addEventListener('change', (e) => addFiles(e.target.files));
+
+    // Drag & drop
+    ['dragenter','dragover'].forEach(ev => {
+      drop.addEventListener(ev, (e) => { e.preventDefault(); e.stopPropagation(); drop.classList.add('dragover'); });
+    });
+    ['dragleave','drop'].forEach(ev => {
+      drop.addEventListener(ev, (e) => { e.preventDefault(); e.stopPropagation(); drop.classList.remove('dragover'); });
+    });
+    drop.addEventListener('drop', (e) => addFiles(e.dataTransfer.files));
+
+    // Submit via fetch, by wysłać wszystkie pliki w form-data pod key "files"
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (!files.length) { alert('Dodaj co najmniej jeden obraz.'); return; }
+
+      status.textContent = 'Wysyłanie…';
+
+      const fd = new FormData();
+      files.forEach(f => fd.append('files', f, f.name));
+
+      const res = await fetch(form.action, { method: 'POST', body: fd });
+      const json = await res.json().catch(() => ({}));
+
+      out.innerHTML = json.response;
+      status.textContent = res.ok ? 'Gotowe ✅' : 'Błąd ❌';
+    });
+  </script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js', { scope: '/' })
+          .catch(console.error);
+      });
+    }
+  </script>
+
 </body>
 </html>
