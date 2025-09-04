@@ -17,7 +17,7 @@ PROMPT_TO_AI = SHORT_ANSWER_TO_TEXT_PROMPT
 
 @app.get("/")
 def read_index():
-    return FileResponse("static/index.html")
+    return FileResponse("static/multiupload.html")
 
 @app.post("/upload-images")
 async def upload_images(files: List[UploadFile] = File(...)):
