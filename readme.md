@@ -15,5 +15,10 @@ OPEN_AI_KEY = "
 fastapi dev main.py
 ```
 
+or
+```
+http://127.0.0.1:5000
+```
+
 ## Change log
 2025-08-22 - Basic configuration / Init of the project 

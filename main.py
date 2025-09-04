@@ -4,6 +4,7 @@ from internal.open_ai import valuate_item, OPEN_AI_CLIENT, SHORT_ANSWER_TO_JSON_
 
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.responses import JSONResponse, FileResponse
+from fastapi.staticfiles import StaticFiles
 
 from openai import OpenAI
 
@@ -11,9 +12,12 @@ app = FastAPI()
 
 PROMPT_TO_AI = SHORT_ANSWER_TO_TEXT_PROMPT
 
+# app.mount("/static", StaticFiles(directory="static"), name="static")
+# app.mount("/", StaticFiles(directory="static", html=True), name="static")
+
 @app.get("/")
 def read_index():
-    return FileResponse("static/multiupload.html")
+    return FileResponse("static/index.html")
 
 @app.post("/upload-images")
 async def upload_images(files: List[UploadFile] = File(...)):
